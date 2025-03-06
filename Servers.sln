@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpServer", "HttpServer\HttpServer.csproj", "{E8E18B57-1126-48F7-8F94-DD37058656A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpServer.Tests", "HttpServer.Tests\HttpServer.Tests.csproj", "{6B3F56F3-5B34-4130-A199-B307788C39F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{E8E18B57-1126-48F7-8F94-DD37058656A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E8E18B57-1126-48F7-8F94-DD37058656A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E8E18B57-1126-48F7-8F94-DD37058656A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B3F56F3-5B34-4130-A199-B307788C39F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B3F56F3-5B34-4130-A199-B307788C39F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B3F56F3-5B34-4130-A199-B307788C39F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B3F56F3-5B34-4130-A199-B307788C39F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

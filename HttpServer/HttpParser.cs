@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+﻿using System.Text;
 
 namespace HttpServer;
 
@@ -8,7 +8,16 @@ public enum HttpNodeType
     Path,
     Version,
     Header,
+    BodySep,
     Body,
+}
+
+public enum HttpMethod 
+{
+    GET,
+    POST,
+    PUT,
+    DELETE,
 }
 
 public readonly struct HttpNode
@@ -24,10 +33,51 @@ public readonly struct HttpNode
     }
 }
 
+public static class HttpNodeExtensions
+{
+    public static HttpMethod ToMethod(this HttpNode self)
+    {
+        if (self.Type is not HttpNodeType.Method)
+        {
+            throw new HttpParserException("Invalid node type: expected method");
+        }
+        
+        return HttpMethod.GET;
+    }
+
+    public static string ToPath(this HttpNode self)
+    {
+        if (self.Type is not HttpNodeType.Path)
+        {
+            throw new HttpParserException("Invalid node type: expected path");
+        }
+        
+        return Encoding.UTF8.GetString(self.Value);
+    }
+
+    public static string ToVersion(this HttpNode self)
+    {
+        if (self.Type is not HttpNodeType.Version)
+        {
+            throw new HttpParserException("Invalid node type: expected version");
+        }
+        
+        return Encoding.UTF8.GetString(self.Value);
+    }
+
+    public static string ToHeader(this HttpNode self)
+    {
+        if (self.Type is not HttpNodeType.Header)
+        {
+            throw new HttpParserException("Invalid node type: expected header");
+        }
+        
+        return Encoding.UTF8.GetString(self.Value);
+    }
+}
+
 public abstract class HttpParser
 {
-    public bool IsFinished { get; protected set;}
-    
     protected HttpNodeType CurrentNode { get; set; }
 
     public HttpParser()
@@ -38,20 +88,26 @@ public abstract class HttpParser
     protected void Reset()
     {
         CurrentNode = HttpNodeType.Method;
-        IsFinished = false;
     }
     
-    public IEnumerable<HttpNode> Parse(ReadOnlyMemory<byte> buffer)
+    public IEnumerable<HttpNode> Parse(ReadOnlySpan<byte> buffer)
     {
+        List<HttpNode> nodes = new();
+        
         while (!buffer.IsEmpty)
         {
-            (int index, HttpNode node) = ParseNode(buffer.Span);
-            buffer = buffer.Slice(index);
-            yield return node;
+            buffer = ParseNode(buffer, out var node);
+            if (buffer.IsEmpty && node.Type is HttpNodeType.Method or HttpNodeType.Path)
+            {
+                throw new HttpParserException("Invalid request: requires method, path, version and body separator");
+            }
+            nodes.Add(node);
         }
+
+        return nodes;
     }
 
-    protected abstract (int, HttpNode) ParseNode(ReadOnlySpan<byte> buffer); 
+    protected abstract ReadOnlySpan<byte> ParseNode(ReadOnlySpan<byte> buffer, out HttpNode node); 
 }
 
 public class HttpParserException : Exception
@@ -76,73 +132,86 @@ public sealed class V1HttpParser : HttpParser
         Reset();
     }
     
-    protected override (int, HttpNode) ParseNode(ReadOnlySpan<byte> buffer)
+    protected override ReadOnlySpan<byte> ParseNode(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
         switch (CurrentNode)
         {
             case HttpNodeType.Method:
-                var method = ParseMethod(buffer);
+                buffer = ParseMethod(buffer, out node);
                 CurrentNode = HttpNodeType.Path;
-                return method;
+                return buffer;
             case HttpNodeType.Path:
-                var path = ParsePath(buffer);
+                buffer = ParsePath(buffer, out node);
                 CurrentNode = HttpNodeType.Version;
-                return path;
+                return buffer;
             case HttpNodeType.Version:
-                var version = ParseVersion(buffer);
+                buffer = ParseVersion(buffer, out node);
                 CurrentNode = HttpNodeType.Header;
-                return version;
+                return buffer;
             case HttpNodeType.Header:
-                var header = ParseHeader(buffer);
-                CurrentNode = header.Item2 is null ? HttpNodeType.Body : HttpNodeType.Header;
-                return header.Item2 is not null ? 
-                    (header.Item1, (HttpNode)header.Item2!) : 
-                    (header.Item1, new HttpNode(HttpNodeType.Header, []));
+                buffer = ParseHeader(buffer, out node);
+                CurrentNode = node.Type is HttpNodeType.BodySep ? 
+                    HttpNodeType.Body : 
+                    HttpNodeType.Header;
+                return buffer;
             case HttpNodeType.Body:
-                var body = ParseBody(buffer);
-                IsFinished = true;
-                return body;
+                if (buffer.IsEmpty)
+                {
+                    node = new HttpNode(HttpNodeType.Body, []);
+                    return ReadOnlySpan<byte>.Empty;
+                }
+                buffer = ParseBody(buffer, out node);
+                return buffer;
             default:
                 throw new HttpParserException(
                     $"Invalid node type: {CurrentNode}");
         }
     }
 
-    private (int, HttpNode) ParseMethod(ReadOnlySpan<byte> buffer)
+    private ReadOnlySpan<byte> ParseMethod(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
-        int index = buffer.NextSpace();
-        var method = buffer[..index];
-        return (index + 1, new HttpNode(HttpNodeType.Method, method.ToArray()));
+        buffer = buffer.ConsumeTillNextSpace(out var value)[1..];
+        node = new HttpNode(HttpNodeType.Method, value);
+        return buffer;
     }
 
-    private (int, HttpNode) ParsePath(ReadOnlySpan<byte> buffer)
+    private ReadOnlySpan<byte> ParsePath(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
-        int index = buffer.NextSpace();
-        var method = buffer[..index];
-        return (index + 1, new HttpNode(HttpNodeType.Path, method.ToArray()));
+       buffer = buffer.ConsumeTillNextSpace(out var value)[1..];
+       node = new HttpNode(HttpNodeType.Path, value);
+       return buffer;
     }
     
-    private (int, HttpNode) ParseVersion(ReadOnlySpan<byte> buffer)
+    private ReadOnlySpan<byte> ParseVersion(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
-        int index = buffer.NextSpace();
-        var method = buffer[..index];
-        return (index + 1, new HttpNode(HttpNodeType.Version, method.ToArray()));
+        buffer = buffer.ConsumeTillNextNewLine(out byte[] value).ConsumeNewLine();
+        node = new HttpNode(HttpNodeType.Version, value);
+        return buffer;
     }
 
-    private (int, HttpNode?) ParseHeader(ReadOnlySpan<byte> buffer)
+    private ReadOnlySpan<byte> ParseHeader(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
-        
+        buffer = buffer.ConsumeTillNextNewLine(out byte[] value).ConsumeNewLine();
+        if (value.Length == 0)
+        {
+            node = new HttpNode(HttpNodeType.BodySep, []);
+            return buffer;
+        }
+
+        node = new HttpNode(HttpNodeType.Header, value);
+        return buffer;
     }
 
-    private (int, HttpNode) ParseBody(ReadOnlySpan<byte> buffer)
+    private ReadOnlySpan<byte> ParseBody(ReadOnlySpan<byte> buffer, out HttpNode node)
     {
-        
+        node = new HttpNode(HttpNodeType.Body, buffer.ToArray());
+        return ReadOnlySpan<byte>.Empty;
     }
 }
 
 internal static class SpanExtensions
 {
-    public static int NextSpace(this ReadOnlySpan<byte> self)
+    public static ReadOnlySpan<byte> ConsumeTillNextSpace(this ReadOnlySpan<byte> self, out byte[] value)
     {
         int point = 0;
         while (self[point] != ' ')
@@ -150,17 +219,29 @@ internal static class SpanExtensions
             point++;
         }
 
-        return point + 1;
+        value = self[..point].ToArray();
+        return self[point..];
     }
 
-    public static int NextNewLine(this ReadOnlySpan<byte> self)
+    public static ReadOnlySpan<byte> ConsumeTillNextNewLine(this ReadOnlySpan<byte> self, out byte[] value)
     {
         int point = 0;
-        while (self[point] != '\r')
+        while (self[point] != '\r' && self[point] != '\n')
         {
             point++;
         }
-        
-        return self[point + 1] == '\n' ? point + 2 : point + 1;
+
+        value = self[..point].ToArray();
+        return self[point..];
+    }
+
+    public static ReadOnlySpan<byte> ConsumeNewLine(this ReadOnlySpan<byte> self)
+    {
+        if (self[0] == '\r' && self[1] == '\n')
+        {
+            return self[2..];
+        }
+
+        return self[1..];
     }
 }
