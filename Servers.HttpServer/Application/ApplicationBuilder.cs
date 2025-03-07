@@ -1,6 +1,6 @@
 ﻿using Servers.Logging;
 
-namespace HttpServer.Application;
+namespace Servers.HttpServer.Application;
 
 public class ApplicationBuilder
 {

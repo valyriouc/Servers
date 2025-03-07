@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpServer", "HttpServer\HttpServer.csproj", "{E8E18B57-1126-48F7-8F94-DD37058656A3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Servers.HttpServer", "Servers.HttpServer\Servers.HttpServer.csproj", "{E8E18B57-1126-48F7-8F94-DD37058656A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpServer.Tests", "HttpServer.Tests\HttpServer.Tests.csproj", "{6B3F56F3-5B34-4130-A199-B307788C39F1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Servers.HttpServer.Tests", "Servers.HttpServer.Tests\Servers.HttpServer.Tests.csproj", "{6B3F56F3-5B34-4130-A199-B307788C39F1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Servers.Logging", "Servers.Logging\Servers.Logging.csproj", "{0D5C9347-2446-4AC7-A4B2-1C131AFF77B8}"
 EndProject
