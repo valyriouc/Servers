@@ -4,31 +4,22 @@ using Servers.Logging;
 
 namespace Servers.Core;
 
-public struct SocketServerConfiguration
+public readonly struct SocketServerConfiguration(
+    SocketType socketType,
+    AddressFamily addressFamily,
+    ProtocolType protocolType,
+    IPAddress ipAddress,
+    ushort port)
 {
-    public ushort Port { get; }
+    public ushort Port { get; } = port;
 
-    public IPAddress IPAddress { get; }
-    
-    public SocketType SocketType { get; }
-    
-    public AddressFamily AddressFamily { get; }
+    public IPAddress IpAddress { get; } = ipAddress;
 
-    public ProtocolType ProtocolType { get; }
+    public SocketType SocketType { get; } = socketType;
 
-    public SocketServerConfiguration(
-        SocketType socketType,
-        AddressFamily addressFamily,
-        ProtocolType protocolType,
-        IPAddress ipAddress,
-        ushort port)
-    {
-        SocketType = socketType;
-        AddressFamily = addressFamily;
-        ProtocolType = protocolType;
-        IPAddress = ipAddress;
-        Port = port;
-    }
+    public AddressFamily AddressFamily { get; } = addressFamily;
+
+    public ProtocolType ProtocolType { get; } = protocolType;
 
     public SocketServerConfiguration(
         SocketType socketType,
@@ -48,9 +39,9 @@ public class SocketServer<T> : IServerFoundation<T>
     private readonly SocketServerConfiguration _configuration;
 
     private readonly Socket _listener;
-    private List<Task> _tasks = new();
+    private readonly List<Task> _tasks = new();
 
-    private SpecificLogger _logger;
+    private readonly SpecificLogger _logger;
     
     public SocketServer(
         SocketServerConfiguration configuration,    
@@ -73,8 +64,8 @@ public class SocketServer<T> : IServerFoundation<T>
             _configuration.SocketType,
             _configuration.ProtocolType);
         
-        _logger.Info($"Starting server on {_configuration.IPAddress}:{_configuration.Port}");
-        EndPoint endPoint = new IPEndPoint(_configuration.IPAddress, _configuration.Port);
+        _logger.Info($"Starting server on {_configuration.IpAddress}:{_configuration.Port}");
+        EndPoint endPoint = new IPEndPoint(_configuration.IpAddress, _configuration.Port);
         listener.Bind(endPoint);
         listener.Listen();
 
