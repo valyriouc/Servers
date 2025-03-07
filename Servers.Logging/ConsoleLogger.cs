@@ -1,12 +1,12 @@
 ﻿namespace Servers.Logging;
 
-public class ConsoleLogger : ILogger<ConsoleLogger>
+public class ConsoleLogger : ILogger
 {
     private readonly DateTime _start;
     
     public ConsoleLogger(DateTime start) => _start = start;
 
-    public static ConsoleLogger Start(DateTime start) => new(start);
+    public static ILogger Start(DateTime start) => new ConsoleLogger(start);
 
     public void Log(string source, LogState state, string message)
     { 

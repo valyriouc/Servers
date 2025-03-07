@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Servers.Logging;
 
 namespace HttpServer;
 
@@ -80,8 +81,11 @@ public abstract class HttpParser
 {
     protected HttpNodeType CurrentNode { get; set; }
 
-    public HttpParser()
+    protected SpecificLogger Logger { get; }
+
+    public HttpParser(ILogger logger)
     {
+        Logger = logger.For("HttpParser");
         Reset();
     }
     
@@ -127,7 +131,7 @@ public class HttpParserException : Exception
 
 public sealed class V1HttpParser : HttpParser
 {
-    public V1HttpParser() : base()
+    public V1HttpParser(ILogger logger) : base(logger)
     {
         Reset();
     }

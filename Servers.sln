@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpServer.Tests", "HttpSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Servers.Logging", "Servers.Logging\Servers.Logging.csproj", "{0D5C9347-2446-4AC7-A4B2-1C131AFF77B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Servers.Core", "Servers.Core\Servers.Core.csproj", "{EC9EE9F6-3AD2-4C99-9A8F-5360C3EE23A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{0D5C9347-2446-4AC7-A4B2-1C131AFF77B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D5C9347-2446-4AC7-A4B2-1C131AFF77B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D5C9347-2446-4AC7-A4B2-1C131AFF77B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC9EE9F6-3AD2-4C99-9A8F-5360C3EE23A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC9EE9F6-3AD2-4C99-9A8F-5360C3EE23A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC9EE9F6-3AD2-4C99-9A8F-5360C3EE23A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC9EE9F6-3AD2-4C99-9A8F-5360C3EE23A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
