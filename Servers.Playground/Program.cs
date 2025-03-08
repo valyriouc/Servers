@@ -1,6 +1,8 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 using Servers.Core;
+using Servers.HttpServer;
+using Servers.HttpServer.Application;
 using Servers.Logging;
 
 namespace ServerPlayground;
@@ -44,9 +46,14 @@ class Program
     static async Task Main(string[] args)
     {
         ILogger logger = ConsoleLogger.Start(DateTime.Now);
-        await using SocketServer<TestServer> server = new SocketServer<TestServer>(new(SocketType.Stream,
-                AddressFamily.InterNetwork, ProtocolType.Tcp, "127.0.0.1", 8080),
-            (provider) => new TestServer(provider, logger),
+        await using SocketServer<HttpServer> server = new SocketServer<HttpServer>(
+            new(
+                SocketType.Stream,
+                AddressFamily.InterNetwork, 
+                ProtocolType.Tcp, 
+                "127.0.0.1", 
+                8080),
+            (provider) => new HttpServer(provider, new HttpApplication(), logger),
             logger);
 
         CancellationTokenSource cts = new();

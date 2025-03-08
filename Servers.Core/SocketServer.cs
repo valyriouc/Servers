@@ -73,7 +73,8 @@ public class SocketServer<T> : IServerFoundation<T>
         {
             Socket client = await listener.AcceptAsync(cancellationToken);
             _logger.Info($"Accepted connection from {client.RemoteEndPoint}");
-            T server = _serverFactory.Invoke(new SocketByteProvider(client)); 
+            SocketByteProvider provider = new SocketByteProvider(client);
+            T server = _serverFactory.Invoke(provider); 
             Task t = Task.Run(async () => await server.ProcessAsync(cancellationToken), cancellationToken);
             _tasks.Add(t);
         }
@@ -126,5 +127,5 @@ public class SocketByteProvider : IByteProvider
 
     public void Write(ReadOnlySpan<byte> buffer) => _socket.Send(buffer);
 
-    public async Task FlushAsync(CancellationToken cancellationToken) => await Task.CompletedTask;
+    public async Task FlushAsync(CancellationToken cancellationToken) => _socket.Close();
 }

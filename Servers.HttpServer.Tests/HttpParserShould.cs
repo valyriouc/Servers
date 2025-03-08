@@ -1,4 +1,5 @@
 using System.Text;
+using Servers.HttpServer;
 using Servers.Logging;
 
 namespace HttpServer.Tests;
@@ -29,8 +30,8 @@ public class HttpParserShould
             GET
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
-        Assert.Throws<HttpParserException>(() => parser.Parse(Encoding.UTF8.GetBytes(http)));
+        HttpParser parser = new(new EmptyLogger());
+        Assert.Throws<HttpParserException>(() => parser.Parse());
     }
 
     [Fact]
@@ -41,8 +42,9 @@ public class HttpParserShould
             GET /
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
-        Assert.Throws<HttpParserException>(() => parser.Parse(Encoding.UTF8.GetBytes(http)));
+        HttpParser parser = new(new EmptyLogger());
+        parser.Feed(Encoding.UTF8.GetBytes(http));
+        Assert.Throws<HttpParserException>(() => parser.Parse());
     }
 
     [Fact]
@@ -53,8 +55,9 @@ public class HttpParserShould
             GET / HTTP/1.1
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
-        Assert.Throws<HttpParserException>(() => parser.Parse(Encoding.UTF8.GetBytes(http)));
+        HttpParser parser = new(new EmptyLogger());
+        parser.Feed(Encoding.UTF8.GetBytes(http));
+        Assert.Throws<HttpParserException>(() => parser.Parse());
     }
     
     [Fact]
@@ -66,9 +69,10 @@ public class HttpParserShould
             
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
-        IEnumerable<HttpNode> nodes = parser.Parse(Encoding.UTF8.GetBytes(http)).ToList();
-        
+        HttpParser parser = new(new EmptyLogger());
+        parser.Feed(Encoding.UTF8.GetBytes(http)); 
+        parser.Parse();
+        IEnumerable<HttpNode> nodes = parser.Retrieve();
         Assert.Equal(3, nodes.Count());
     }
 
@@ -83,10 +87,11 @@ public class HttpParserShould
             
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
+        HttpParser parser = new(new EmptyLogger());
         var content = Encoding.UTF8.GetBytes(http);
-        IEnumerable<HttpNode> nodes = parser.Parse(content).ToList();
-        
+        parser.Feed(content);
+        parser.Parse();
+        IEnumerable<HttpNode> nodes = parser.Retrieve();
         Assert.Equal(5, nodes.Count());
     }
 
@@ -101,9 +106,10 @@ public class HttpParserShould
             Hello world!
             """;
         
-        V1HttpParser parser = new(new EmptyLogger());
-        IEnumerable<HttpNode> nodes = parser.Parse(Encoding.UTF8.GetBytes(http)).ToList();
-        
+        HttpParser parser = new(new EmptyLogger());
+        parser.Feed(Encoding.UTF8.GetBytes(http));
+        parser.Parse();
+        var nodes = parser.Retrieve();
         Assert.Equal(6, nodes.Count());
     }
 }
