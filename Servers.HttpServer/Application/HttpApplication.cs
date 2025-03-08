@@ -6,10 +6,9 @@ namespace Servers.HttpServer.Application;
 /// </summary>
 public class HttpApplication 
 {
-    internal async Task<IEnumerable<HttpNode>> ServeAsync(IEnumerable<HttpNode> request, CancellationToken cancellationToken)
+    internal async Task<HttpResponse> ServeAsync(HttpRequest request, CancellationToken cancellationToken)
     {
         throw HttpStatusException.BadRequest("Invalid request");
         await Task.CompletedTask;
-        return new List<HttpNode>();
     }
 }

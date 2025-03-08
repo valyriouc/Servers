@@ -42,22 +42,26 @@ public class HttpPath
         Query = query;
     }
 
-    internal static HttpPath Parse(string value)
+    public static HttpPath Parse(string value)
     {
-        var parts = value.Split('?');
-        if (parts.Length > 2)
+        if (value.Length == 0)
         {
-            throw new HttpParserException("Invalid path: expected query");
+            throw new HttpParserException("Invalid path: empty");
         }
         
-        string path = parts[0];
-        var pairs = parts[1].Split('&');
-        var query = new Dictionary<string, string>();
+        var parts = value.Split('?');
+        string path = parts[0]; 
         
-        foreach (var pair in pairs)
+        var query = new Dictionary<string, string>();
+        if (parts.Length == 2)
         {
-            var kv = pair.Split('=');
-            query.Add(kv[0], kv[1]);
+            var pairs = parts[1].Split('&');
+        
+            foreach (var pair in pairs)
+            {
+                var kv = pair.Split('=');
+                query.Add(kv[0], kv[1]);
+            }    
         }
 
         return new HttpPath(path, query);

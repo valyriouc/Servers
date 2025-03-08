@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Servers.ByteWork\Servers.ByteWork.csproj" />
       <ProjectReference Include="..\Servers.Core\Servers.Core.csproj" />
       <ProjectReference Include="..\Servers.Logging\Servers.Logging.csproj" />
     </ItemGroup>

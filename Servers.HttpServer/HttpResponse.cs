@@ -24,7 +24,7 @@ public class HttpResponse
         Body = body;
     }
 
-    public static HttpResponse FromError(HttpStatusException ex) =>
+    public static HttpResponse FromException(HttpStatusException ex) =>
         new(
             "HTTP/1.1",
             ex.State,
@@ -47,17 +47,5 @@ public class HttpResponse
                 { "Content-Length", $"{Encoding.UTF8.GetBytes(ex.Message).Length}"}
             },
             new StringBuilder(ex.Message));
-
-    internal IEnumerable<HttpNode> ToNodes()
-    {
-        yield return new HttpNode(HttpNodeType.Version, Encoding.UTF8.GetBytes(Version));
-        yield return new HttpNode(HttpNodeType.Status, Encoding.UTF8.GetBytes($"{(int)StatusCode} {StatusCode}\r\n"));
-
-        foreach (var header in Headers)
-        {
-            yield return new HttpNode(HttpNodeType.Header, Encoding.UTF8.GetBytes($"{header.Key}: {header.Value}\r\n"));
-        }
-        
-        yield return new HttpNode(HttpNodeType.Body, Encoding.UTF8.GetBytes(Body.ToString()));
-    }
+    
 }

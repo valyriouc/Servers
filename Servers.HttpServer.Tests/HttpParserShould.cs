@@ -1,6 +1,7 @@
 using System.Text;
 using Servers.HttpServer;
 using Servers.Logging;
+using HttpMethod = Servers.HttpServer.HttpMethod;
 
 namespace HttpServer.Tests;
 
@@ -31,7 +32,7 @@ public class HttpParserShould
             """;
         
         HttpParser parser = new(new EmptyLogger());
-        Assert.Throws<HttpParserException>(() => parser.Parse());
+        Assert.Throws<HttpParserException>(() => parser.Parse(Encoding.UTF8.GetBytes(http)));
     }
 
     [Fact]
@@ -43,21 +44,7 @@ public class HttpParserShould
             """;
         
         HttpParser parser = new(new EmptyLogger());
-        parser.Feed(Encoding.UTF8.GetBytes(http));
-        Assert.Throws<HttpParserException>(() => parser.Parse());
-    }
-
-    [Fact]
-    public void ThrowExceptionOnInvalidHttp_OnlyMethodAndPathAndVersionNoBodySeparator()
-    {
-        string http =
-            """
-            GET / HTTP/1.1
-            """;
-        
-        HttpParser parser = new(new EmptyLogger());
-        parser.Feed(Encoding.UTF8.GetBytes(http));
-        Assert.Throws<HttpParserException>(() => parser.Parse());
+        Assert.Throws<HttpParserException>(() => parser.Parse(Encoding.UTF8.GetBytes(http)));
     }
     
     [Fact]
@@ -66,14 +53,14 @@ public class HttpParserShould
         string http =
             """
             GET / HTTP/1.1
-            
             """;
         
         HttpParser parser = new(new EmptyLogger());
-        parser.Feed(Encoding.UTF8.GetBytes(http)); 
-        parser.Parse();
-        IEnumerable<HttpNode> nodes = parser.Retrieve();
-        Assert.Equal(3, nodes.Count());
+        parser.Parse(Encoding.UTF8.GetBytes(http));
+        HttpRequest request = parser.ToRequest();
+        Assert.Equal(HttpMethod.GET, request.Method);
+        Assert.Equal("/", request.Uri.Path);
+        Assert.Equal("HTTP/1.1", request.Version);
     }
 
     [Fact]
@@ -84,15 +71,40 @@ public class HttpParserShould
             GET / HTTP/1.1
             Host: testing.com
             
+            """;
+        
+        HttpParser parser = new(new EmptyLogger());
+        var content = Encoding.UTF8.GetBytes(http);
+        parser.Parse(content);
+        var request = parser.ToRequest();
+        Assert.Equal(HttpMethod.GET, request.Method);
+        Assert.Equal("/", request.Uri.Path);
+        Assert.Equal("HTTP/1.1", request.Version);
+        Assert.Single(request.Headers);
+        Assert.Equal("testing.com", request.Headers["Host"]);
+    }
+
+    [Fact]
+    public void ParseMutlipleHeadersNoBody()
+    {
+        string http =
+            """
+            GET / HTTP/1.1
+            Host: testing.com
+            X-Test: 123
             
             """;
         
         HttpParser parser = new(new EmptyLogger());
         var content = Encoding.UTF8.GetBytes(http);
-        parser.Feed(content);
-        parser.Parse();
-        IEnumerable<HttpNode> nodes = parser.Retrieve();
-        Assert.Equal(5, nodes.Count());
+        parser.Parse(content);
+        var request = parser.ToRequest();
+        Assert.Equal(HttpMethod.GET, request.Method);
+        Assert.Equal("/", request.Uri.Path);
+        Assert.Equal("HTTP/1.1", request.Version);
+        Assert.Equal(2, request.Headers.Count);
+        Assert.Equal("testing.com", request.Headers["Host"]);
+        Assert.Equal("123", request.Headers["X-Test"]);
     }
 
     [Fact]
@@ -102,14 +114,22 @@ public class HttpParserShould
             """
             GET / HTTP/1.1
             Host: testing.com
-
+            
             Hello world!
             """;
         
         HttpParser parser = new(new EmptyLogger());
-        parser.Feed(Encoding.UTF8.GetBytes(http));
-        parser.Parse();
-        var nodes = parser.Retrieve();
-        Assert.Equal(6, nodes.Count());
+        parser.Parse(Encoding.UTF8.GetBytes(http));
+        var request = parser.ToRequest();
+        Assert.Equal(HttpMethod.GET, request.Method);
+        Assert.Equal(HttpMethod.GET, request.Method);
+        Assert.Equal("/", request.Uri.Path);
+        Assert.Equal("HTTP/1.1", request.Version);
+        Assert.Single(request.Headers);
+        Assert.Equal("testing.com", request.Headers["Host"]);
+
+        Span<byte> body = new byte[256];
+        var read = request.Body.Read(body);
+        Assert.Equal("Hello world!", Encoding.UTF8.GetString(body[..read]));
     }
 }

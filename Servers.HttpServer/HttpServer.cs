@@ -33,23 +33,29 @@ public class HttpServer : IServer
         _application = application;
     }
 
-    private async Task<IEnumerable<HttpNode>> ProcessRequestAsync(CancellationToken cancellationToken)
+    private async Task<HttpRequest> ProcessRequestAsync(CancellationToken cancellationToken)
     {
         Memory<byte> buffer = new byte[1024];
+        int offset = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
-            int read = await _provider.ReadAsync(buffer, cancellationToken);
+            buffer[offset..].CopyTo(buffer[..]);
+            int read = await _provider.ReadAsync(buffer[offset..], cancellationToken);
             _logger.Info($"Read {read} bytes");
 
             if (read == 0)
-                break;
+                _parser.IsFinished = true;
             
             _logger.Info($"Parse http request...");
-            _parser.Feed(buffer[..read]);
-            _parser.Parse();
+            offset = _parser.Parse(buffer.Span[..read]);
         }
 
-        return _parser.Retrieve();
+        return _parser.ToRequest();
+    }
+
+    private async Task ProcessResponseAsync(HttpResponse response, CancellationToken cancellationToken)
+    {
+        
     }
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
@@ -59,27 +65,23 @@ public class HttpServer : IServer
             try
             {
                 _logger.Info("Processing request...");
-                IEnumerable<HttpNode> requestNodes = await ProcessRequestAsync(cancellationToken);
+                HttpRequest request = await ProcessRequestAsync(cancellationToken);
                 _logger.Info("Server application is processing the request...");
-                IEnumerable<HttpNode> responseNodes = await _application.ServeAsync(requestNodes, cancellationToken);
+                HttpResponse response = await _application.ServeAsync(request, cancellationToken);
                 _logger.Info("Received response from server application.");
-                ReadOnlyMemory<byte> responseBytes = HttpGenerator.Generate(responseNodes);
-                _logger.Info($"Sending response of {responseBytes.Length} bytes...");
-                await _provider.WriteAsync(responseBytes, cancellationToken);
+                await ProcessResponseAsync(response, cancellationToken);
             }
             catch (HttpStatusException ex)
             {
                 _logger.Error(ex);
                 HttpResponse response = HttpResponse.FromError(ex);
-                ReadOnlyMemory<byte> responseBytes = HttpGenerator.Generate(response.ToNodes());
-                await _provider.WriteAsync(responseBytes, cancellationToken);
+                await ProcessResponseAsync(response, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.Error(ex);
                 HttpResponse response = HttpResponse.FromError(ex);
-                ReadOnlyMemory<byte> responseBytes = HttpGenerator.Generate(response.ToNodes());
-                await _provider.WriteAsync(responseBytes, cancellationToken);
+                await ProcessResponseAsync(response, cancellationToken);
             }
             finally
             {
@@ -94,8 +96,6 @@ public class HttpServer : IServer
 
     public async ValueTask DisposeAsync() => await _provider.DisposeAsync();
 }
-
-
 
 public class HttpStatusException : Exception
 {
